@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from './components/HomeScreen';
 import DataScreen from './components/DataScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import Header from './components/Header';
 
 const Stack = createStackNavigator();
@@ -15,18 +16,18 @@ export default function App() {
         initialRouteName="Home"
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#6366F1', // Primary color
-            elevation: 0, // Remove shadow on Android
-            shadowOpacity: 0, // Remove shadow on iOS
+            backgroundColor: '#6366F1',
+            elevation: 0,
+            shadowOpacity: 0,
           },
-          headerTintColor: '#FFFFFF', // White text for header
+          headerTintColor: '#FFFFFF',
           headerTitleStyle: {
             fontWeight: '600',
             fontSize: 18,
           },
           headerBackTitleVisible: false,
           cardStyle: {
-            backgroundColor: '#F9FAFB', // Background color
+            backgroundColor: '#F9FAFB',
           }
         }}
       >
@@ -45,6 +46,16 @@ export default function App() {
           component={DataScreen} 
           options={{ 
             title: 'Data Management',
+            headerStyle: {
+              backgroundColor: '#6366F1',
+            }
+          }}
+        />
+        <Stack.Screen 
+          name="Profile" 
+          component={ProfileScreen} 
+          options={{ 
+            title: 'Profile',
             headerStyle: {
               backgroundColor: '#6366F1',
             }
