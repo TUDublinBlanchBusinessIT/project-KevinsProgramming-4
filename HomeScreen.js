@@ -8,10 +8,22 @@ const HomeScreen = ({ navigation }) => {
       <Text style={styles.description}>
         This is a React Native mobile app with Firebase integration.
       </Text>
-      <Button
-        title="Go to Data Screen"
-        onPress={() => navigation.navigate('Data')}
-      />
+      
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Go to Data Screen"
+          onPress={() => navigation.navigate('Data')}
+          color="#6366F1"
+        />
+      </View>
+      
+      <View style={styles.buttonContainer}>
+        <Button
+          title="View Profile"
+          onPress={() => navigation.navigate('Profile')}
+          color="#8B5CF6"
+        />
+      </View>
     </View>
   );
 };
@@ -22,17 +34,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F9FAFB',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#333',
   },
   description: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
     color: '#666',
+    lineHeight: 22,
+  },
+  buttonContainer: {
+    marginVertical: 10,
+    width: '80%',
   },
 });
 
