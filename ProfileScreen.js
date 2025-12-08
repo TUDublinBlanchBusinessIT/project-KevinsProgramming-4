@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Switch, Alert } from 'react-native';
-import CustomButton from '../components/CustomButton';
+import CustomButton from './components/CustomButton';
 
 export default function ProfileScreen() {
   const [user, setUser] = useState({
