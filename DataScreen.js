@@ -1,457 +1,286 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  View, 
-  Text, 
-  Button, 
-  FlatList, 
-  StyleSheet, 
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  ScrollView 
+  View, Text, TextInput, Button, FlatList, StyleSheet, 
+  ScrollView, RefreshControl 
 } from 'react-native';
-import { FirebaseService } from './Services/firebaseConfig';
+import { db } from './Services/FirebaseConfig';
+import { collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import DataCard from './components/DataCard';
 
-const DataScreen = ({ navigation }) => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('Connecting to Firebase...');
+const DataScreen = () => {
+  const [foodItems, setFoodItems] = useState([]);
+  const [newFood, setNewFood] = useState({ name: '', expiry: '' });
+  const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({ name: '', expiry: '' });
+  const [refreshing, setRefreshing] = useState(false);
+  const [firebaseConnected, setFirebaseConnected] = useState(true);
 
-  // Initialize Firebase when screen loads
   useEffect(() => {
-    initializeFirebase();
+    const unsubscribe = onSnapshot(
+      collection(db, 'pantryItems'),
+      (snapshot) => {
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setFoodItems(items);
+        setFirebaseConnected(true);
+      },
+      (error) => {
+        console.error("Firebase error:", error);
+        setFirebaseConnected(false);
+      }
+    );
+    return unsubscribe;
   }, []);
 
-  const initializeFirebase = async () => {
-    try {
-      setStatus('Initializing Firebase...');
-      await FirebaseService.initialize();
-      setStatus('✅ Firebase connected! Loading data...');
-      
-      // Load existing data
-      await loadData();
-      
-    } catch (error) {
-      setStatus(`❌ Error: ${error.message}`);
-      Alert.alert('Firebase Error', error.message);
-    }
+  const getExpiryInfo = (expiryDate) => {
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { color: '#ff4444', label: 'EXPIRED' };
+    if (diffDays <= 3) return { color: '#ff9800', label: diffDays === 0 ? 'TODAY' : `IN ${diffDays} DAYS` };
+    return { color: '#4CAF50', label: 'FRESH' };
   };
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const fetchedItems = await FirebaseService.getData("maCA2Data");
-      setItems(fetchedItems);
-      setStatus(`✅ Loaded ${fetchedItems.length} items`);
-    } catch (error) {
-      Alert.alert('Load Error', error.message);
-      setStatus('❌ Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+  const getUrgentItems = () => {
+    return foodItems.filter(item => {
+      const expiry = new Date(item.expiryDate);
+      const today = new Date();
+      const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 3;
+    });
   };
 
-  const addSampleData = async () => {
-    try {
-      const sampleItems = [
-        {
-          name: 'Pizza Margherita',
-          price: 12.99,
-          category: 'Italian',
-          description: 'Classic pizza with tomato and mozzarella',
-          inStock: true
-        },
-        {
-          name: 'Burger',
-          price: 9.99,
-          category: 'American',
-          description: 'Beef burger with cheese and lettuce',
-          inStock: true
-        },
-        {
-          name: 'Sushi Platter',
-          price: 18.50,
-          category: 'Japanese',
-          description: 'Assorted sushi selection',
-          inStock: false
-        }
-      ];
-
-      for (const item of sampleItems) {
-        await FirebaseService.saveData("maCA2Data", {
-          ...item,
-          timestamp: new Date().toLocaleString(),
-          addedBy: 'Demo User'
-        });
-      }
-      
-      await loadData();
-      Alert.alert('Success', 'Sample data added to Firebase!');
-      
-    } catch (error) {
-      Alert.alert('Save Error', error.message);
-    }
-  };
-
-  const addCustomItem = async () => {
-    Alert.prompt(
-      'Add New Item',
-      'Enter item name:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Add', 
-          onPress: async (name) => {
-            if (name) {
-              const newItem = {
-                name: name,
-                price: (Math.random() * 20 + 5).toFixed(2),
-                category: ['Italian', 'Mexican', 'Chinese', 'Indian', 'American'][Math.floor(Math.random() * 5)],
-                description: 'Custom added item',
-                inStock: true,
-                timestamp: new Date().toLocaleString(),
-                addedBy: 'Demo User'
-              };
-              
-              try {
-                await FirebaseService.saveData("maCA2Data", newItem);
-                await loadData();
-                Alert.alert('Success', `Added "${name}" to Firebase!`);
-              } catch (error) {
-                Alert.alert('Error', error.message);
-              }
-            }
-          }
-        }
-      ]
+  const getFilteredItems = () => {
+    if (!search.trim()) return foodItems;
+    return foodItems.filter(item => 
+      item.name.toLowerCase().includes(search.toLowerCase())
     );
   };
 
-  const deleteAllItems = async () => {
-    Alert.alert(
-      'Delete All Items',
-      'Are you sure? This will remove all data from Firebase.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete All', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Note: In production, you'd batch delete. For demo, we'll just clear UI.
-              setItems([]);
-              setStatus('All items cleared from display');
-              Alert.alert('Cleared', 'Display cleared (demo mode)');
-            } catch (error) {
-              Alert.alert('Error', error.message);
-            }
-          }
-        }
-      ]
+  const handleAdd = async () => {
+    if (!newFood.name.trim() || !newFood.expiry.trim()) {
+      alert('Please enter food name and expiry date');
+      return;
+    }
+    
+    try {
+      await addDoc(collection(db, 'pantryItems'), {
+        name: newFood.name,
+        expiryDate: newFood.expiry,
+        addedDate: new Date().toISOString()
+      });
+      setNewFood({ name: '', expiry: '' });
+    } catch (error) {
+      alert('Error adding item: ' + error.message);
+      setFirebaseConnected(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'pantryItems', id));
+    } catch (error) {
+      alert('Error deleting: ' + error.message);
+      setFirebaseConnected(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editData.name.trim() || !editData.expiry.trim()) {
+      alert('Please enter valid values');
+      return;
+    }
+    
+    try {
+      await updateDoc(doc(db, 'pantryItems', editingId), {
+        name: editData.name,
+        expiryDate: editData.expiry
+      });
+      setEditingId(null);
+    } catch (error) {
+      alert('Error updating: ' + error.message);
+      setFirebaseConnected(false);
+    }
+  };
+
+  const renderUrgentSection = () => {
+    const urgentItems = getUrgentItems();
+    if (urgentItems.length === 0) return null;
+
+    return (
+      <View style={styles.urgentSection}>
+        <Text style={styles.urgentTitle}>⚠️ Use Up First ({urgentItems.length})</Text>
+        {urgentItems.slice(0, 3).map(item => {
+          const expiry = getExpiryInfo(item.expiryDate);
+          return (
+            <View key={item.id} style={styles.urgentCard}>
+              <Text style={styles.urgentName}>{item.name}</Text>
+              <Text style={styles.urgentDate}>Expires: {item.expiryDate}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: expiry.color }]}>
+                <Text style={styles.statusText}>{expiry.label}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
     );
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={[styles.itemCard, { borderLeftColor: item.inStock ? '#10B981' : '#EF4444' }]}
-      onPress={() => Alert.alert(
-        'Item Details',
-        `Name: ${item.name}\nPrice: €${item.price}\nCategory: ${item.category}\nStatus: ${item.inStock ? 'In Stock' : 'Out of Stock'}\nAdded: ${item.timestamp}\nBy: ${item.addedBy || 'Unknown'}`
-      )}
-    >
-      <View style={styles.itemHeader}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <View style={styles.priceContainer}>
-          <Text style={styles.itemPrice}>€{item.price}</Text>
-          <View style={[styles.stockBadge, { backgroundColor: item.inStock ? '#D1FAE5' : '#FEE2E2' }]}>
-            <Text style={[styles.stockText, { color: item.inStock ? '#065F46' : '#991B1B' }]}>
-              {item.inStock ? 'IN STOCK' : 'OUT OF STOCK'}
-            </Text>
+  const renderItem = ({ item }) => {
+    if (editingId === item.id) {
+      return (
+        <View style={styles.editCard}>
+          <TextInput
+            value={editData.name}
+            onChangeText={(text) => setEditData({...editData, name: text})}
+            style={styles.input}
+            placeholder="Food name"
+          />
+          <TextInput
+            value={editData.expiry}
+            onChangeText={(text) => setEditData({...editData, expiry: text})}
+            style={styles.input}
+            placeholder="YYYY-MM-DD"
+          />
+          <View style={styles.editButtons}>
+            <Button title="Save" onPress={handleSaveEdit} color="#4CAF50" />
+            <Button title="Cancel" onPress={() => setEditingId(null)} color="#666" />
           </View>
         </View>
-      </View>
-      <Text style={styles.itemCategory}>{item.category}</Text>
-      <Text style={styles.itemTimestamp}>{item.timestamp}</Text>
-    </TouchableOpacity>
-  );
+      );
+    }
+
+    const expiry = getExpiryInfo(item.expiryDate);
+    return (
+      <DataCard
+        title={item.name}
+        subtitle={`Expires: ${item.expiryDate}`}
+        status={expiry.label}
+        statusColor={expiry.color}
+        onDelete={() => handleDelete(item.id)}
+        onEdit={() => {
+          setEditingId(item.id);
+          setEditData({ name: item.name, expiry: item.expiryDate });
+        }}
+      />
+    );
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>📊 Firebase Data Demo</Text>
-        <Text style={styles.subtitle}>{status}</Text>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => setRefreshing(false)}
+          colors={['#4CAF50']}
+        />
+      }
+    >
+      <Text style={styles.header}>Family Pantry</Text>
+      
+      <TextInput
+        placeholder="🔍 Search items..."
+        value={search}
+        onChangeText={setSearch}
+        style={styles.search}
+      />
+
+      <View style={styles.addSection}>
+        <TextInput
+          placeholder="Food name"
+          value={newFood.name}
+          onChangeText={(text) => setNewFood({...newFood, name: text})}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Expiry (YYYY-MM-DD)"
+          value={newFood.expiry}
+          onChangeText={(text) => setNewFood({...newFood, expiry: text})}
+          style={styles.input}
+        />
+        <Button title="Add Item" onPress={handleAdd} color="#4CAF50" />
       </View>
 
-      <View style={styles.statsCard}>
-        <View style={styles.stat}>
-          <Text style={styles.statNumber}>{items.length}</Text>
-          <Text style={styles.statLabel}>Total Items</Text>
-        </View>
-        <View style={styles.stat}>
-          <Text style={styles.statNumber}>
-            {items.filter(item => item.inStock).length}
-          </Text>
-          <Text style={styles.statLabel}>In Stock</Text>
-        </View>
-        <View style={styles.stat}>
-          <Text style={styles.statNumber}>
-            €{items.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toFixed(2)}
-          </Text>
-          <Text style={styles.statLabel}>Total Value</Text>
-        </View>
-      </View>
+      {renderUrgentSection()}
 
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlButton} onPress={addCustomItem}>
-          <Text style={styles.controlButtonText}>➕ Add Item</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.controlButton, { backgroundColor: '#8B5CF6' }]} onPress={addSampleData}>
-          <Text style={styles.controlButtonText}>📥 Add Sample Data</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.controlButton, { backgroundColor: '#F59E0B' }]} onPress={loadData}>
-          <Text style={styles.controlButtonText}>🔄 Refresh</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.controlButton, { backgroundColor: '#EF4444' }]} onPress={deleteAllItems}>
-          <Text style={styles.controlButtonText}>🗑️ Clear All</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.sectionTitle}>
+        All Items ({getFilteredItems().length})
+      </Text>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading from Firebase...</Text>
-        </View>
+      {getFilteredItems().length === 0 ? (
+        <Text style={styles.empty}>
+          {search ? 'No items found' : 'Your pantry is empty. Add some items!'}
+        </Text>
       ) : (
-        <>
-          <Text style={styles.sectionTitle}>
-            Data from Firebase ({items.length} items)
-          </Text>
-          
-          {items.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No data yet</Text>
-              <Text style={styles.emptyText}>Tap "Add Sample Data" to populate Firebase</Text>
-              <Text style={styles.emptyHint}>💡 Check Firebase Console to see data in real-time</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={items}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              contentContainerStyle={styles.list}
-            />
-          )}
-        </>
+        <FlatList
+          data={getFilteredItems()}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+          renderItem={renderItem}
+        />
       )}
 
-      <View style={styles.demoInstructions}>
-        <Text style={styles.instructionsTitle}>🎯 Demo Instructions:</Text>
-        <Text style={styles.instruction}>1. Tap "Add Sample Data" to populate Firebase</Text>
-        <Text style={styles.instruction}>2. Open Firebase Console to see data appear</Text>
-        <Text style={styles.instruction}>3. Add custom items with "Add Item"</Text>
-        <Text style={styles.instruction}>4. Show real-time sync between app and console</Text>
+      <View style={styles.firebaseStatus}>
+        <View>
+          <Text style={styles.firebaseText}>
+            Connected to Firebase 🔥
+          </Text>
+          <Text style={styles.firebaseSubtext}>
+            {foodItems.length} items • {getUrgentItems().length} need attention
+          </Text>
+        </View>
+        <Text style={styles.firebaseIcon}>
+          {firebaseConnected ? '✅' : '⚠️'}
+        </Text>
       </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    backgroundColor: '#6366F1',
-    padding: 24,
-    paddingTop: 40,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#E0E7FF',
-    marginBottom: 12,
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: -20,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  controls: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    marginTop: 20,
-    gap: 10,
-  },
-  controlButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-  },
-  controlButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#6B7280',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginHorizontal: 20,
-    marginTop: 30,
-    marginBottom: 16,
-  },
-  emptyState: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    padding: 40,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  emptyHint: {
-    fontSize: 14,
-    color: '#6366F1',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  list: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  itemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  itemHeader: {
+  container: { flex: 1, padding: 16, backgroundColor: '#f8f9fa' },
+  header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginVertical: 16, color: '#2d3436' },
+  search: { backgroundColor: 'white', padding: 12, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#ddd' },
+  addSection: { backgroundColor: 'white', padding: 16, borderRadius: 10, marginBottom: 16, elevation: 2 },
+  input: { borderWidth: 1, borderColor: '#ddd', padding: 10, borderRadius: 6, marginBottom: 10, fontSize: 16 },
+  urgentSection: { backgroundColor: '#fff3cd', padding: 14, borderRadius: 10, marginBottom: 16, borderWidth: 1, borderColor: '#ffc107' },
+  urgentTitle: { fontSize: 16, fontWeight: 'bold', color: '#856404', marginBottom: 8 },
+  urgentCard: { backgroundColor: 'white', padding: 10, marginBottom: 6, borderRadius: 6 },
+  urgentName: { fontSize: 15, fontWeight: '600' },
+  urgentDate: { fontSize: 13, color: '#666' },
+  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, marginTop: 4 },
+  statusText: { color: 'white', fontSize: 11, fontWeight: 'bold' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginVertical: 12, color: '#343a40' },
+  empty: { textAlign: 'center', color: '#6c757d', fontStyle: 'italic', padding: 20 },
+  editCard: { backgroundColor: '#e8f5e9', padding: 12, marginVertical: 4, borderRadius: 8 },
+  editButtons: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
+  firebaseStatus: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  itemName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1,
-    marginRight: 10,
-  },
-  priceContainer: {
-    alignItems: 'flex-end',
-  },
-  itemPrice: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#10B981',
-    marginBottom: 6,
-  },
-  stockBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  stockText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  itemCategory: {
-    fontSize: 14,
-    color: '#6366F1',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  itemTimestamp: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  demoInstructions: {
-    backgroundColor: '#FEF3C7',
-    marginHorizontal: 20,
-    marginBottom: 30,
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 10,
+    marginTop: 20,
+    marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: '#2196f3',
   },
-  instructionsTitle: {
+  firebaseIcon: {
+    fontSize: 24,
+  },
+  firebaseText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#92400E',
-    marginBottom: 8,
+    fontWeight: '600',
+    color: '#1976d2',
   },
-  instruction: {
+  firebaseSubtext: {
     fontSize: 14,
-    color: '#92400E',
-    marginBottom: 4,
-    paddingLeft: 8,
+    color: '#1976d2',
+    marginTop: 4,
+    opacity: 0.8,
   },
 });
 
