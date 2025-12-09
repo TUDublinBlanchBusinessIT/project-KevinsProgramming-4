@@ -1,57 +1,74 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const DataCard = ({ title, value, icon, color = '#6366F1', onPress }) => {
+// ADD onEdit to parameters
+const DataCard = ({ title, subtitle, status, statusColor, onDelete, onEdit }) => {
   return (
-    <TouchableOpacity 
-      style={[styles.card, { borderLeftColor: color }]} 
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <View style={styles.content}>
+    <View style={styles.card}>
+      {/* WRAP content in TouchableOpacity for edit */}
+      <TouchableOpacity onPress={onEdit} style={styles.content}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.value}>{value}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </TouchableOpacity>
+      
+      <View style={styles.rightSection}>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+          <Text style={styles.statusText}>{status}</Text>
+        </View>
+        
+        <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+          <Text style={styles.deleteText}>🗑️</Text>
+        </TouchableOpacity>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-    </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 20,
+    padding: 15,
+    marginVertical: 5,
+    borderRadius: 8,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  iconContainer: {
-    marginRight: 16,
   },
   content: {
     flex: 1,
   },
   title: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  value: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 10,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: '#ffebee',
+    padding: 8,
+    borderRadius: 6,
+  },
+  deleteText: {
+    fontSize: 18,
   },
 });
 
