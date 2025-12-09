@@ -1,112 +1,76 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Switch, Alert } from 'react-native';
-import CustomButton from './components/CustomButton';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
-export default function ProfileScreen() {
-  const [user, setUser] = useState({
-    name: 'Kevin',
-    email: 'kevin@example.com',
-    notifications: true
-  });
-  const [isEditing, setIsEditing] = useState(false);
-
-  const handleSave = () => {
-    if (!user.name || !user.email) {
-      Alert.alert('Error', 'Fill all fields');
-      return;
-    }
-    console.log('Saving:', user);
-    setIsEditing(false);
-    Alert.alert('Saved!', 'Profile updated');
-  };
-
+const ProfileScreen = () => {
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        <Text style={styles.subtitle}>Manage your settings</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>👨‍👩‍👧‍👦 Family Pantry</Text>
+      
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Shared Kitchen Tablet</Text>
+        <Text style={styles.cardText}>
+          This app lives on our kitchen tablet. Everyone in the family can add and remove items.
+        </Text>
       </View>
-
-      <View style={styles.form}>
-        <Text style={styles.label}>Name</Text>
-        <TextInput
-          style={styles.input}
-          value={user.name}
-          onChangeText={(text) => setUser({...user, name: text})}
-          editable={isEditing}
-        />
-
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={user.email}
-          onChangeText={(text) => setUser({...user, email: text})}
-          editable={isEditing}
-          keyboardType="email-address"
-        />
-
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>Notifications</Text>
-          <Switch
-            value={user.notifications}
-            onValueChange={(value) => setUser({...user, notifications: value})}
-            disabled={!isEditing}
-          />
-        </View>
-
-        {isEditing ? (
-          <View>
-            <CustomButton title="Save" onPress={handleSave} color="#10B981" />
-            <CustomButton title="Cancel" onPress={() => setIsEditing(false)} color="#EF4444" />
-          </View>
-        ) : (
-          <CustomButton title="Edit Profile" onPress={() => setIsEditing(true)} />
-        )}
+      
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Family Members</Text>
+        <Text style={styles.member}>👩 Mom - Shopper</Text>
+        <Text style={styles.member}>👨 Dad - Chef</Text>
+        <Text style={styles.member}>👧 Paula - Helper</Text>
+        <Text style={styles.member}>👦 Henry - Snacks</Text>
       </View>
-    </ScrollView>
+      
+      <Text style={styles.tip}>
+        💡 Tip: Scan groceries when you unpack them!
+      </Text>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    padding: 20,
-    backgroundColor: '#6366F1',
-  },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
+    textAlign: 'center',
+    marginVertical: 20,
+    color: '#2E7D32',
   },
-  subtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 5,
-  },
-  form: {
+  card: {
+    backgroundColor: 'white',
     padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    elevation: 2,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
     color: '#333',
   },
-  input: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+  cardText: {
     fontSize: 16,
-    marginBottom: 20,
+    color: '#666',
+    lineHeight: 22,
   },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 30,
+  member: {
+    fontSize: 16,
+    marginVertical: 5,
+    color: '#444',
+  },
+  tip: {
+    fontSize: 16,
+    color: '#FF9800',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 10,
   },
 });
+
+export default ProfileScreen;
