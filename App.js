@@ -1,67 +1,61 @@
+// App.js - FINAL VERSION
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from './HomeScreen';          
-import DataScreen from './DataScreen';          
-import ProfileScreen from './ProfileScreen';   
-import Header from './header';                  
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import HomeScreen from './HomeScreen';
+import DataScreen from './DataScreen';
+import ProfileScreen from './ProfileScreen';
+import { Ionicons } from '@expo/vector-icons';
 
-const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Header />
-      <Stack.Navigator 
-        initialRouteName="Home"
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#6366F1',
-            elevation: 0,
-            shadowOpacity: 0,
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
+            
+            if (route.name === 'Home') {
+              iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === 'Data') {
+              iconName = focused ? 'list' : 'list-outline';
+            } else if (route.name === 'Profile') {
+              iconName = focused ? 'people' : 'people-outline';
+            }
+            
+            return <Ionicons name={iconName} size={size} color={color} />;
           },
-          headerTintColor: '#FFFFFF',
-          headerTitleStyle: {
-            fontWeight: '600',
-            fontSize: 18,
-          },
-          headerBackTitleVisible: false,
-          cardStyle: {
-            backgroundColor: '#F9FAFB',
-          }
-        }}
+          tabBarActiveTintColor: '#4CAF50',
+          tabBarInactiveTintColor: 'gray',
+        })}
       >
-        <Stack.Screen 
+        <Tab.Screen 
           name="Home" 
           component={HomeScreen} 
           options={{ 
-            title: 'Home',
-            headerStyle: {
-              backgroundColor: '#6366F1',
-            }
+            tabBarLabel: 'Dashboard',
+            headerTitle: 'Pantry Dashboard'
           }}
         />
-        <Stack.Screen 
+        <Tab.Screen 
           name="Data" 
           component={DataScreen} 
           options={{ 
-            title: 'Data Management',
-            headerStyle: {
-              backgroundColor: '#6366F1',
-            }
+            tabBarLabel: 'Pantry',
+            headerTitle: 'Manage Your Pantry'
           }}
         />
-        <Stack.Screen 
+        <Tab.Screen 
           name="Profile" 
           component={ProfileScreen} 
           options={{ 
-            title: 'Profile',
-            headerStyle: {
-              backgroundColor: '#6366F1',
-            }
+            tabBarLabel: 'Family',
+            headerTitle: 'Family Members'
           }}
         />
-      </Stack.Navigator>
+      </Tab.Navigator>
     </NavigationContainer>
   );
 }
