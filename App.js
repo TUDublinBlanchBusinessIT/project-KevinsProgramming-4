@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from './HomeScreen';          // Changed
-import DataScreen from './DataScreen';          // Changed
-import ProfileScreen from './ProfileScreen';    // Changed
-import Header from './header';                  // Changed (lowercase)
+import HomeScreen from './HomeScreen';          
+import DataScreen from './DataScreen';          
+import ProfileScreen from './ProfileScreen';   
+import Header from './header';                  
 
 const Stack = createStackNavigator();
 
