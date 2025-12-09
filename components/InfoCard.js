@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const InfoCard = ({ title, description, icon = '📱' }) => {
+const InfoCard = ({ title, value, color = '#2196F3', icon = '📊' }) => {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { borderLeftColor: color }]}>
       <Text style={styles.icon}>{icon}</Text>
+      <Text style={styles.value}>{value}</Text>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
     </View>
   );
 };
@@ -14,30 +14,27 @@ const InfoCard = ({ title, description, icon = '📱' }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white',
+    padding: 16,
     borderRadius: 10,
-    padding: 20,
-    marginVertical: 10,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderLeftWidth: 5,
+    width: '48%',
+    alignItems: 'center',
+    elevation: 2,
   },
   icon: {
-    fontSize: 30,
-    marginBottom: 10,
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  value: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#333',
-  },
-  description: {
     fontSize: 14,
     color: '#666',
-    lineHeight: 20,
+    textAlign: 'center',
   },
 });
 
